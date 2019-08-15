@@ -1,0 +1,91 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+# ==========================================
+# General conf, change here
+# ==========================================
+
+# Choose your box
+VAGRANT_B2D_BOX="AlbanMontaigu/boot2docker"
+
+# Choose your box version, related to docker's version
+VAGRANT_B2D_VERSION="18.06.0.pre.ce"
+
+#  B2D VM customization
+VAGRANT_B2D_CPU="2"
+VAGRANT_B2D_MEMORY="4096"
+
+# B2D environment extension (version related to VAGRANT_B2D_VERSION by default)
+VAGRANT_B2D_EXTENSION_REPO="https://github.com/AlbanMontaigu/boot2docker-vagrant-extension.git"
+VAGRANT_B2D_EXTENSION_VERSION=VAGRANT_B2D_VERSION
+
+# Enable or not docker toolbox extension ON/OFF
+DKTB_EXTENSION_STATUS="OFF"
+
+# Enable or not docker transparent proxy daemon
+DK_PROXYD_STATUS="OFF"
+
+# Enable or not regular docker images pull
+CRON_DK_IPULL_STATUS="OFF"
+CRON_DK_IPULL_TIME="15 13 * * *"
+
+# Enable or not regular docker images backup
+CRON_DK_IBACKUP_STATUS="OFF"
+CRON_DK_IBACKUP_TIME="30 13 * * *"
+
+
+# ==========================================
+# Virtual host configuration
+# ==========================================
+Vagrant.configure("2") do |config|
+
+
+  # -----------------------------------
+  # OS choosen on the machine
+  # -----------------------------------
+  config.vm.box = VAGRANT_B2D_BOX
+  config.vm.box_version = VAGRANT_B2D_VERSION
+
+
+  # -----------------------------------
+  # Server Hardware 
+  # -----------------------------------
+  config.vm.provider :virtualbox do |vb|
+
+    # Customize hier the memory available for your boot2docker
+    vb.customize ["modifyvm", :id, "--memory", VAGRANT_B2D_MEMORY]
+  
+    # Customize here the number of cpu you want to give to your boot2docker
+    vb.customize ["modifyvm", :id, "--cpus", VAGRANT_B2D_CPU]
+  end
+
+
+  # -----------------------------------
+  # All internal services exposed
+  # -----------------------------------
+  config.vm.network "forwarded_port", guest: 22, host: 22, auto_correct: true
+  # Put here all the port mapping you want to do between your computer and your boot2docker
+  config.vm.network "forwarded_port", guest: 9090, host: 9090, auto_correct: true
+  config.vm.network "forwarded_port", guest: 9022, host: 9022, auto_correct: true
+  config.vm.network "forwarded_port", guest: 5550, host: 5550, auto_correct: true
+  config.vm.network "forwarded_port", guest: 5554, host: 5554, auto_correct: true
+  for i in 8000..8079
+    config.vm.network "forwarded_port", guest: i, host: i
+  end
+  
+  # -----------------------------------
+  # Customization of the OS
+  # -----------------------------------
+  config.vm.provision "shell", path: "boot2docker/provision.sh", :args => [ VAGRANT_B2D_EXTENSION_REPO, VAGRANT_B2D_EXTENSION_VERSION]
+  config.vm.provision "shell", path: "boot2docker/param.sh", :args => [ 'DKTB_EXTENSION_STATUS', DKTB_EXTENSION_STATUS]
+  config.vm.provision "shell", path: "boot2docker/param.sh", :args => [ 'DK_PROXYD_STATUS', DK_PROXYD_STATUS]
+  config.vm.provision "shell", path: "boot2docker/param.sh", :args => [ 'CRON_DK_IPULL_STATUS', CRON_DK_IPULL_STATUS]
+  config.vm.provision "shell", path: "boot2docker/param.sh", :args => [ 'CRON_DK_IPULL_TIME', CRON_DK_IPULL_TIME]
+  config.vm.provision "shell", path: "boot2docker/param.sh", :args => [ 'CRON_DK_IBACKUP_STATUS', CRON_DK_IBACKUP_STATUS]
+  config.vm.provision "shell", path: "boot2docker/param.sh", :args => [ 'CRON_DK_IBACKUP_TIME', CRON_DK_IBACKUP_TIME]
+  config.vm.provision "shell", path: "boot2docker/bootlocal.sh", run: "always"
+  config.vm.provision "shell", inline: "docker pull ibmcom/datapower"
+  config.vm.provision "shell", inline: "docker create -it -v /vagrant/config:/drouter/config -v /vagrant/local:/drouter/local -e DATAPOWER_ACCEPT_LICENSE=true -e DATAPOWER_INTERACTIVE=true -p 9090:9090 -p 9022:22 -p 5550:5550 -p 5554:5554 -p 8000-8079:8000-8079 --name idg ibmcom/datapower"
+  config.vm.provision "shell", inline: "docker start idg"
+end
