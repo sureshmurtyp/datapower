@@ -26,7 +26,7 @@ Open the command prompt.
 Run the following command the clone this repo to your computer:
 ```
 set PATH=%PATH%;C:\Program Files\Git\usr\bin;C:\Program Files\Git\bin
-git clone https://github.com/sreenukasa/datapower.git
+git clone https://github.com/sureshmurtyp/datapower.git
 cd boot2docker-vagrant-datapower
 ```
 
